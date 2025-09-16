@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import httpx
 import typing
 from typing import List, Dict, Optional
-from .base import Message
+from .base import Message, ContentPart, ImageUrl
 import time
 import json
 import re
@@ -25,7 +25,7 @@ GEMINI_STREAM_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/model
 
 class OpenAIProxyArgs(BaseModel):
     model: str
-    messages: List[Dict[str, str]]
+    messages: List[Message]
     stream: bool = False
     temperature: float = 0.7
     top_p: float = 1
@@ -36,16 +36,47 @@ class OpenAIProxyArgs(BaseModel):
 
 
 class MessageConverter:
-    def __init__(self, messages: List[Dict[str, str]]):
+    def __init__(self, messages: List[Message]):
         self.messages = messages
 
-    def convert(self) -> List[Dict[str, str]]:
+    def convert(self) -> List[Dict]:
         converted_messages = []
         for message in self.messages:
-            role = "user" if message["role"] == "user" else "model"
+            role = "user" if message.role == "user" else "model"
+            parts = []
+            
+            # Handle both string content and multimodal content
+            if isinstance(message.content, str):
+                parts.append({"text": message.content})
+            elif isinstance(message.content, list):
+                for part in message.content:
+                    if part.type == "text":
+                        parts.append({"text": part.text})
+                    elif part.type == "image_url":
+                        # Convert image URL to Gemini format
+                        image_url = part.image_url.url
+                        if image_url.startswith("data:"):
+                            # Handle base64 encoded images
+                            mime_type, base64_data = image_url.split(",", 1)
+                            mime_type = mime_type.split(":")[1].split(";")[0]
+                            parts.append({
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": base64_data
+                                }
+                            })
+                        else:
+                            # Handle image URLs (need to fetch and convert to base64)
+                            parts.append({
+                                "file_data": {
+                                    "mime_type": "image/jpeg",  # Default, could be improved
+                                    "file_uri": image_url
+                                }
+                            })
+            
             converted_messages.append({
                 "role": role,
-                "parts": [{"text": message["content"]}]
+                "parts": parts
             })
         return converted_messages
 

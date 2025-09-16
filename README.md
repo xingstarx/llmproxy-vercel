@@ -27,6 +27,7 @@
 - 支持供应商：Groq、Google、OpenAI、Cerebras、NVIDIA、Mistral、Sambanova
 - 支持流式输出
 - 兼容 OpenAI API 规范
+- **新增**: 支持多模态（图片识别）- 使用 Gemini 1.5 Flash 模型
 
 注：大陆不可直接访问 vercel.app 域名。如想直接访问，可参考之前作者的另一个项目[llmproxy](https://github.com/ultrasev/llmproxy)，通过 cloudflare worker 部署 LLM API 反向代理。
 
@@ -56,7 +57,7 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-## 示例 2： Google Gemini
+## 示例 2： Google Gemini (文本)
 
 ```python
 from openai import OpenAI
@@ -69,6 +70,46 @@ client = OpenAI(
 response = client.chat.completions.create(
     model="gemini-1.5-flash",
     messages=[{"role": "user", "content": "Hello world!"}],
+)
+
+print(response.choices[0].message.content)
+```
+
+## 示例 2.1： Google Gemini (多模态 - 图片识别)
+
+```python
+from openai import OpenAI
+import base64
+
+client = OpenAI(
+    api_key="your-gemini-api-key",
+    base_url="https://llmproxy-vercel.vercel.app/gemini",
+)
+
+# 读取本地图片并转换为base64
+with open("image.jpg", "rb") as image_file:
+    base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+response = client.chat.completions.create(
+    model="gemini-1.5-flash",  # 最便宜的多模态模型
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "请描述这张图片的内容"
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}"
+                    }
+                }
+            ]
+        }
+    ],
+    max_tokens=1000
 )
 
 print(response.choices[0].message.content)
@@ -90,6 +131,30 @@ curl --location 'https://llmproxy-vercel.vercel.app/cerebras/chat/completions' \
     "top_p": 1
 }'
 ```
+
+# 多模态功能 (图片识别)
+
+本项目现已支持多模态功能，可以处理图片识别需求。
+
+## 支持的模型
+- **gemini-1.5-flash**: 最便宜的多模态模型，适合作为兜底方案
+  - 输入价格: ~$0.075 / 1M tokens
+  - 输出价格: ~$0.30 / 1M tokens
+  - 支持格式: 文本 + 图片 (JPEG, PNG, WebP, HEIC, HEIF)
+
+## 支持的图片格式
+- Base64 编码图片: `data:image/jpeg;base64,{base64_string}`
+- 图片 URL: `https://example.com/image.jpg`
+- 支持的图片类型: JPEG, PNG, WebP, HEIC, HEIF
+
+## 使用场景
+- 图片内容描述和分析
+- 多张图片对比
+- 图片中的文字识别 (OCR)
+- 图表和数据可视化分析
+- 产品图片分析
+
+更多示例请参考 `multimodal_example.py` 文件。
 
 # Vercel 一键部署
 
