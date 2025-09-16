@@ -36,7 +36,7 @@ def example_base64_image():
     test_image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
     
     response = client.chat.completions.create(
-        model="gemini-1.5-flash",  # 最便宜的多模态模型
+        model="gemini-2.5-flash-lite",  # 最便宜的多模态模型
         messages=[
             {
                 "role": "user",
@@ -179,6 +179,9 @@ if __name__ == "__main__":
     
     print("取消注释下面的函数调用来测试:")
     print("# example_text_only()")
+
     print("# example_base64_image()")
+    example_base64_image()
+
     print("# example_multiple_images()")
     print("# example_streaming()")
