@@ -66,13 +66,43 @@ class MessageConverter:
                                 }
                             })
                         else:
-                            # Handle image URLs (need to fetch and convert to base64)
-                            parts.append({
-                                "file_data": {
-                                    "mime_type": "image/jpeg",  # Default, could be improved
-                                    "file_uri": image_url
-                                }
-                            })
+                            # Handle image URLs - fetch and convert to base64
+                            try:
+                                import httpx
+                                import base64
+                                # Fetch the image
+                                with httpx.Client() as client:
+                                    img_response = client.get(image_url)
+                                    if img_response.status_code == 200:
+                                        # Determine MIME type from content-type header or URL extension
+                                        content_type = img_response.headers.get('content-type', 'image/jpeg')
+                                        if not content_type.startswith('image/'):
+                                            # Fallback based on URL extension
+                                            if image_url.lower().endswith('.png'):
+                                                content_type = 'image/png'
+                                            elif image_url.lower().endswith('.webp'):
+                                                content_type = 'image/webp'
+                                            elif image_url.lower().endswith('.gif'):
+                                                content_type = 'image/gif'
+                                            else:
+                                                content_type = 'image/jpeg'
+                                        
+                                        # Convert to base64
+                                        base64_data = base64.b64encode(img_response.content).decode('utf-8')
+                                        parts.append({
+                                            "inline_data": {
+                                                "mime_type": content_type,
+                                                "data": base64_data
+                                            }
+                                        })
+                                    else:
+                                        logger.error(f"Failed to fetch image from URL: {image_url}, status: {img_response.status_code}")
+                                        # Add error message as text
+                                        parts.append({"text": f"[Error: Could not fetch image from {image_url}]"})
+                            except Exception as e:
+                                logger.error(f"Error processing image URL {image_url}: {e}")
+                                # Add error message as text
+                                parts.append({"text": f"[Error: Could not process image from {image_url}]"})
             
             converted_messages.append({
                 "role": role,
