@@ -22,8 +22,8 @@ def example_base64_image():
     """使用base64编码图片的示例"""
     
     client = OpenAI(
-        api_key="AIzaSyABGGlUboSaQdoB0z2CsQP4dysVc0M5nvw",  # 替换为你的Gemini API密钥
-        base_url="https://llm.describepicture.cc/gemini",  # 替换为你的部署地址
+        api_key="your-gemini-api-key",  # 替换为你的Gemini API密钥
+        base_url="https://your-project.vercel.app/gemini",  # 替换为你的部署地址
     )
     
     # 假设你有一张本地图片
@@ -62,7 +62,46 @@ def example_base64_image():
     print("图片分析结果:")
     print(response.choices[0].message.content)
 
-# 示例2: 多张图片对比
+# 示例2: 使用URL图片地址
+def example_url_image():
+    """直接使用图片URL的示例"""
+    
+    client = OpenAI(
+        api_key="your-gemini-api-key",  # 替换为你的Gemini API密钥
+        base_url="https://your-project.vercel.app/gemini",  # 替换为你的部署地址
+    )
+    
+    # 使用你提供的图片URL
+    image_url = "https://img.describepicture.cc/images/1757015053745_670714.webp"
+    
+    response = client.chat.completions.create(
+        model="gemini-2.5-flash-lite",  # 最便宜的多模态模型
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "请详细描述这张图片的内容，包括颜色、形状、物体、场景等信息。"
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": image_url,
+                            "detail": "auto"  # 可选: low, high, auto
+                        }
+                    }
+                ]
+            }
+        ],
+        max_tokens=1000,
+        temperature=0.7
+    )
+    
+    print("URL图片分析结果:")
+    print(response.choices[0].message.content)
+
+# 示例3: 多张图片对比
 def example_multiple_images():
     """多张图片对比分析的示例"""
     
@@ -181,7 +220,10 @@ if __name__ == "__main__":
     print("# example_text_only()")
 
     print("# example_base64_image()")
-    example_base64_image()
+    # example_base64_image()
+
+    print("# example_url_image()")
+    # example_url_image()
 
     print("# example_multiple_images()")
     print("# example_streaming()")
