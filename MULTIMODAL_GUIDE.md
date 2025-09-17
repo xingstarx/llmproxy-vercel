@@ -8,10 +8,11 @@
 - **API 端点**: `https://your-domain.com/gemini/chat/completions`
 - **免费额度**: 15 RPM / 250K TPM / 1,000 RPD
 - **支持格式**: JPEG, PNG, WebP, HEIC, HEIF
+- **图片输入**: 🆕 URL地址 (推荐) + Base64编码
 
 ## 🔧 cURL 调用示例
 
-### 基础图片分析
+### 基础图片分析 (Base64格式)
 
 ```bash
 curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
@@ -42,7 +43,38 @@ curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
   }'
 ```
 
-### 多张图片对比
+### 🆕 使用URL图片地址 (推荐)
+
+```bash
+curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_GEMINI_API_KEY' \
+  --data '{
+    "model": "gemini-2.5-flash-lite",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "请详细描述这张图片的内容，包括颜色、形状、物体、场景等信息。"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://img.describepicture.cc/images/1757015053745_670714.webp",
+              "detail": "auto"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 1000,
+    "temperature": 0.7
+  }'
+```
+
+### 多张图片对比 (混合URL和Base64)
 
 ```bash
 curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
@@ -61,7 +93,7 @@ curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
           {
             "type": "image_url",
             "image_url": {
-              "url": "data:image/png;base64,IMAGE1_BASE64_STRING"
+              "url": "https://img.describepicture.cc/images/1757015053745_670714.webp"
             }
           },
           {
@@ -78,7 +110,7 @@ curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
   }'
 ```
 
-### 流式响应
+### 流式响应 (使用URL图片)
 
 ```bash
 curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
@@ -97,7 +129,7 @@ curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
           {
             "type": "image_url",
             "image_url": {
-              "url": "data:image/png;base64,YOUR_IMAGE_BASE64"
+              "url": "https://img.describepicture.cc/images/1757015053745_670714.webp"
             }
           }
         ]
@@ -110,7 +142,7 @@ curl --location 'https://llm.describepicture.cc/gemini/chat/completions' \
 
 ## ⚛️ Next.js 调用示例
 
-### 1. 基础图片分析组件
+### 1. 基础图片分析组件 (支持文件上传)
 
 ```jsx
 // components/ImageAnalyzer.jsx
@@ -222,7 +254,141 @@ export default function ImageAnalyzer() {
 }
 ```
 
-### 2. 流式响应组件
+### 🆕 2. URL图片分析组件 (推荐)
+
+```jsx
+// components/UrlImageAnalyzer.jsx
+import { useState } from 'react';
+
+export default function UrlImageAnalyzer() {
+  const [imageUrl, setImageUrl] = useState('');
+  const [analysis, setAnalysis] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 分析URL图片
+  const analyzeUrlImage = async () => {
+    if (!imageUrl) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('https://llm.describepicture.cc/gemini/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "请详细描述这张图片的内容，包括颜色、形状、物体、场景等信息。"
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: imageUrl,
+                    detail: "auto"
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || '分析失败');
+      }
+      
+      setAnalysis(data.choices[0].message.content);
+    } catch (error) {
+      console.error('分析失败:', error);
+      setAnalysis(`分析失败: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 预设示例图片
+  const exampleImages = [
+    'https://img.describepicture.cc/images/1757015053745_670714.webp',
+    'https://picsum.photos/800/600?random=1',
+    'https://picsum.photos/800/600?random=2'
+  ];
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">URL图片分析工具</h2>
+      
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          图片URL地址:
+        </label>
+        <input
+          type="url"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://example.com/image.jpg"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 mb-2">或选择示例图片:</p>
+        <div className="flex flex-wrap gap-2">
+          {exampleImages.map((url, index) => (
+            <button
+              key={index}
+              onClick={() => setImageUrl(url)}
+              className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded-full"
+            >
+              示例 {index + 1}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {imageUrl && (
+        <div className="mb-4">
+          <img
+            src={imageUrl}
+            alt="预览"
+            className="max-w-full h-auto rounded-lg shadow-md"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
+      <button
+        onClick={analyzeUrlImage}
+        disabled={!imageUrl || loading}
+        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+      >
+        {loading ? '分析中...' : '分析URL图片'}
+      </button>
+
+      {analysis && (
+        <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+          <h3 className="font-semibold mb-2">分析结果:</h3>
+          <p className="whitespace-pre-wrap">{analysis}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### 3. 流式响应组件
 
 ```jsx
 // components/StreamingImageAnalyzer.jsx
@@ -359,7 +525,7 @@ export default function StreamingImageAnalyzer() {
 }
 ```
 
-### 3. API 路由示例 (Next.js App Router)
+### 4. API 路由示例 (Next.js App Router)
 
 ```javascript
 // app/api/analyze-image/route.js
@@ -367,7 +533,12 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { image, prompt = "请描述这张图片" } = await request.json();
+    const { image, prompt = "请描述这张图片", imageType = "auto" } = await request.json();
+    
+    // 验证图片参数
+    if (!image) {
+      throw new Error('图片参数不能为空');
+    }
     
     const response = await fetch('https://llm.describepicture.cc/gemini/chat/completions', {
       method: 'POST',
@@ -388,8 +559,8 @@ export async function POST(request) {
               {
                 type: "image_url",
                 image_url: {
-                  url: image, // base64 格式: data:image/jpeg;base64,xxx
-                  detail: "auto"
+                  url: image, // 支持 base64 格式或 URL 格式
+                  detail: imageType // auto, low, high
                 }
               }
             ]
@@ -408,7 +579,8 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      analysis: data.choices[0].message.content
+      analysis: data.choices[0].message.content,
+      usage: data.usage || null
     });
 
   } catch (error) {
@@ -419,6 +591,20 @@ export async function POST(request) {
     );
   }
 }
+
+// 使用示例:
+// POST /api/analyze-image
+// Body: 
+// {
+//   "image": "https://img.describepicture.cc/images/1757015053745_670714.webp",
+//   "prompt": "请描述这张图片",
+//   "imageType": "auto"
+// }
+// 或
+// {
+//   "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA...",
+//   "prompt": "请描述这张图片"
+// }
 ```
 
 ## 🔑 环境变量配置
@@ -440,6 +626,25 @@ GEMINI_API_KEY=your_gemini_api_key_here  # 服务端使用
 | gemini-2.0-flash | 15 | 1M | 200 | 长文本+图片处理 |
 | gemini-2.0-flash-lite | 30 | 1M | 200 | 高并发场景 |
 
+## 🆕 URL图片 vs Base64图片对比
+
+| 特性 | URL图片 | Base64图片 |
+|------|---------|------------|
+| **传输效率** | ✅ 高效 - 只传输URL | ❌ 低效 - 传输完整图片数据 |
+| **请求大小** | ✅ 小 - 几十字节 | ❌ 大 - 增加33%体积 |
+| **处理速度** | ✅ 快 - 服务端并行下载 | ❌ 慢 - 客户端预处理 |
+| **缓存友好** | ✅ 支持CDN缓存 | ❌ 无法缓存 |
+| **网络要求** | ⚠️ 图片URL需可访问 | ✅ 无额外网络要求 |
+| **安全性** | ⚠️ 图片需公开访问 | ✅ 完全私有 |
+| **推荐场景** | 🏆 **公开图片、高并发** | 私有图片、离线处理 |
+
+### 🎯 最佳实践建议
+
+1. **优先使用URL格式** - 适用于大多数场景
+2. **Base64仅用于私有图片** - 敏感内容或内网图片
+3. **图片CDN优化** - 使用CDN加速图片访问
+4. **错误处理** - URL图片需处理网络异常
+
 ## ⚠️ 注意事项
 
 1. **API 密钥安全**: 
@@ -449,14 +654,17 @@ GEMINI_API_KEY=your_gemini_api_key_here  # 服务端使用
 2. **图片大小限制**:
    - 建议图片大小 < 4MB
    - 支持的格式: JPEG, PNG, WebP, HEIC, HEIF
+   - URL图片需确保网络可访问
 
 3. **错误处理**:
    - 实现适当的错误处理和重试机制
    - 监控 API 使用量避免超出限制
 
 4. **性能优化**:
+   - 🆕 **优先使用URL图片** - 减少传输量，提升响应速度
    - 图片压缩可以提高响应速度
    - 使用流式响应提升用户体验
+   - URL图片建议使用CDN加速
 
 ## 🚀 快速开始
 
